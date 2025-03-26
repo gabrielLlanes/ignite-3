@@ -113,12 +113,12 @@ public class LimitNode<RowT> extends AbstractNode<RowT> implements SingleNode<Ro
 
         waiting -= batch.size();
 
-        int skip = rowsProcessed > offset ? 0 : offset - rowsProcessed;
+        int skip = offset > rowsProcessed ? offset - rowsProcessed : 0;
         int count = fetchNode == null ? batch.size() - skip : Math.min(fetch + offset - rowsProcessed, batch.size() - skip);
 
-        rowsProcessed += count;
+        rowsProcessed += batch.size();
 
-        if(count > 0) {
+        if (count > 0) {
             downstream().push(batch.subList(skip, skip + count));
         }
 

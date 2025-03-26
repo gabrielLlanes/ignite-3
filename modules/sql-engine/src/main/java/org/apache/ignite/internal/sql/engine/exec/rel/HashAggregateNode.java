@@ -180,32 +180,28 @@ public class HashAggregateNode<RowT> extends AbstractNode<RowT> implements Singl
     private void flush() throws Exception {
         assert waiting == NOT_WAITING;
 
-        int processed = 0;
-        ArrayDeque<Grouping> groupingsQueue = groupingsQueue();
-
         inLoop = true;
         try {
-            while (requested > 0 && !groupingsQueue.isEmpty()) {
-                Grouping grouping = groupingsQueue.peek();
+            if (requested > 0 && !groupings.isEmpty()) {
+                List<RowT> batch = newBatch(requested);
+                while (requested > 0 && !groupings.isEmpty()) {
+                    Grouping grouping = groupings.get(0);
 
-                int toSnd = Math.min(requested, inBufSize - processed);
+                    int collected = grouping.collectRows(batch, requested);
+                    requested -= collected;
 
-                for (RowT row : grouping.getRows(toSnd)) {
-                    requested--;
-                    downstream().push(row);
-
-                    processed++;
+                    if (grouping.isEmpty()) {
+                        groupings.remove(0);
+                    }
                 }
 
-                if (processed >= inBufSize && requested > 0) {
+                downstream().push(batch);
+
+                if (requested > 0 && !groupings.isEmpty()) {
                     // allow others to do their job
                     this.execute(this::doFlush);
 
                     return;
-                }
-
-                if (grouping.isEmpty()) {
-                    groupingsQueue.remove();
                 }
             }
         } finally {
@@ -216,12 +212,6 @@ public class HashAggregateNode<RowT> extends AbstractNode<RowT> implements Singl
             requested = 0;
             downstream().end();
         }
-    }
-
-    private ArrayDeque<Grouping> groupingsQueue() {
-        return groupings.stream()
-                .filter(g -> !g.isEmpty())
-                .collect(toCollection(ArrayDeque::new));
     }
 
     private class Grouping {
@@ -272,14 +262,15 @@ public class HashAggregateNode<RowT> extends AbstractNode<RowT> implements Singl
         /**
          * Returns up to {@code cnt} rows collected by the given node group by group.
          *
-         * @param cnt Number of rows.
-         * @return Actually sent rows number.
+         * @param batch Batch to collect rows to.
+         * @param cnt Number of rows to collect.
+         * @return Actually collected rows number.
          */
-        private List<RowT> getRows(int cnt) {
+        private int collectRows(List<RowT> batch, int cnt) {
             Iterator<Map.Entry<GroupKey, AggregateRow<RowT>>> it = groups.entrySet().iterator();
 
             int rowNum = Math.min(cnt, groups.size());
-            List<RowT> res = new ArrayList<>(rowNum);
+            int collected = 0;
 
             for (int i = 0; i < rowNum; i++) {
                 Map.Entry<GroupKey, AggregateRow<RowT>> entry = it.next();
@@ -300,11 +291,12 @@ public class HashAggregateNode<RowT> extends AbstractNode<RowT> implements Singl
 
                 RowT row = rowFactory.create(fields);
 
-                res.add(row);
+                collected++;
+                batch.add(row);
                 it.remove();
             }
 
-            return res;
+            return collected;
         }
 
         private AggregateRow<RowT> create() {
