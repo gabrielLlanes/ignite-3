@@ -94,13 +94,8 @@ public abstract class MergeJoinNode<RowT> extends AbstractNode<RowT> {
     @Override
     protected Downstream<RowT> requestDownstream(int idx) {
         if (idx == 0) {
-            return new Downstream<RowT>() {
+            return new Downstream<>() {
                 /** {@inheritDoc} */
-                @Override
-                public void push(RowT row) throws Exception {
-                    pushLeft(row);
-                }
-
                 @Override
                 public void push(List<RowT> batch) throws Exception {
                     pushLeft(batch);
@@ -119,13 +114,8 @@ public abstract class MergeJoinNode<RowT> extends AbstractNode<RowT> {
                 }
             };
         } else if (idx == 1) {
-            return new Downstream<RowT>() {
+            return new Downstream<>() {
                 /** {@inheritDoc} */
-                @Override
-                public void push(RowT row) throws Exception {
-                    pushRight(row);
-                }
-
                 @Override
                 public void push(List<RowT> batch) throws Exception {
                     pushRight(batch);
@@ -148,17 +138,6 @@ public abstract class MergeJoinNode<RowT> extends AbstractNode<RowT> {
         throw new IndexOutOfBoundsException();
     }
 
-    private void pushLeft(RowT row) throws Exception {
-        assert downstream() != null;
-        assert waitingLeft > 0;
-
-        waitingLeft--;
-
-        leftInBuf.add(row);
-
-        join();
-    }
-
     private void pushLeft(List<RowT> row) throws Exception {
         assert downstream() != null;
         assert waitingLeft > 0;
@@ -166,17 +145,6 @@ public abstract class MergeJoinNode<RowT> extends AbstractNode<RowT> {
         waitingLeft -= row.size();
 
         leftInBuf.addAll(row);
-
-        join();
-    }
-
-    private void pushRight(RowT row) throws Exception {
-        assert downstream() != null;
-        assert waitingRight > 0;
-
-        waitingRight--;
-
-        rightInBuf.add(row);
 
         join();
     }

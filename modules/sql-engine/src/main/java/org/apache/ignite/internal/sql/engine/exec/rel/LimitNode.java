@@ -86,26 +86,6 @@ public class LimitNode<RowT> extends AbstractNode<RowT> implements SingleNode<Ro
 
     /** {@inheritDoc} */
     @Override
-    public void push(RowT row) throws Exception {
-        if (waiting == NOT_WAITING) {
-            return;
-        }
-        ++rowsProcessed;
-
-        --waiting;
-
-        if (rowsProcessed > offset) {
-            if (fetchNode == null || rowsProcessed <= fetch + offset) {
-                downstream().push(row);
-            }
-        }
-
-        if (fetch > 0 && rowsProcessed == fetch + offset && waiting > 0) {
-            end();
-        }
-    }
-
-    @Override
     public void push(List<RowT> batch) throws Exception {
         if (waiting == NOT_WAITING) {
             return;
