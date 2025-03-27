@@ -106,7 +106,7 @@ public class HashAggregateNode<RowT> extends AbstractNode<RowT> implements Singl
         if (waiting == 0) {
             source().request(waiting = inBufSize);
         } else if (!inLoop) {
-            this.execute(this::doFlush);
+            this.execute(this::flush);
         }
     }
 
@@ -156,33 +156,31 @@ public class HashAggregateNode<RowT> extends AbstractNode<RowT> implements Singl
         return this;
     }
 
-    private void doFlush() throws Exception {
-        flush();
-    }
-
     private void flush() throws Exception {
         assert waiting == NOT_WAITING;
 
+        ArrayDeque<Grouping> groupingsQueue = groupingsQueue();
+
         inLoop = true;
         try {
-            if (requested > 0 && !groupings.isEmpty()) {
+            if (requested > 0 && !groupingsQueue.isEmpty()) {
                 List<RowT> batch = newBatch(requested);
-                while (requested > 0 && !groupings.isEmpty()) {
-                    Grouping grouping = groupings.get(0);
+                while (requested > 0 && !groupingsQueue.isEmpty()) {
+                    Grouping grouping = groupingsQueue.peek();
 
                     int collected = grouping.collectRows(batch, requested);
                     requested -= collected;
 
                     if (grouping.isEmpty()) {
-                        groupings.remove(0);
+                        groupingsQueue.poll();
                     }
                 }
 
                 downstream().push(batch);
 
-                if (requested > 0 && !groupings.isEmpty()) {
+                if (requested > 0 && !groupingsQueue.isEmpty()) {
                     // allow others to do their job
-                    this.execute(this::doFlush);
+                    this.execute(this::flush);
 
                     return;
                 }
@@ -191,10 +189,16 @@ public class HashAggregateNode<RowT> extends AbstractNode<RowT> implements Singl
             inLoop = false;
         }
 
-        if (requested > 0) {
+        if (requested > 0 && groupingsQueue.isEmpty()) {
             requested = 0;
             downstream().end();
         }
+    }
+
+    private ArrayDeque<Grouping> groupingsQueue() {
+        return groupings.stream()
+                .filter(g -> !g.isEmpty())
+                .collect(toCollection(ArrayDeque::new));
     }
 
     private class Grouping {
