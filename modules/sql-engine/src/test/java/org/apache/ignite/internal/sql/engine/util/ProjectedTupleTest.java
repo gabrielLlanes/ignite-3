@@ -135,6 +135,11 @@ class ProjectedTupleTest {
         assertThat(projectedSchema.value(restored, 0), equalTo(ALL_TYPES_SCHEMA.value(TUPLE, f1)));
         assertThat(projectedSchema.value(restored, 1), equalTo(ALL_TYPES_SCHEMA.value(TUPLE, f2)));
         assertThat(projectedSchema.value(restored, 2), equalTo(ALL_TYPES_SCHEMA.value(TUPLE, f3)));
+
+        // Ensure projected tuple is the same after normalization.
+        assertThat(projectedSchema.value(projectedTuple, 0), equalTo(projectedSchema.value(restored, 0)));
+        assertThat(projectedSchema.value(projectedTuple, 1), equalTo(projectedSchema.value(restored, 1)));
+        assertThat(projectedSchema.value(projectedTuple, 2), equalTo(projectedSchema.value(restored, 2)));
     }
 
     @Test

@@ -73,7 +73,7 @@ public class ProjectedTuple extends AbstractProjectedTuple {
         for (int i = 0; i < projection.length; i++) {
             copyValue(builder, i);
 
-            newProjection[i] = projection[i];
+            newProjection[i] = i;
         }
 
         delegate = new BinaryTuple(projection.length, builder.build());
