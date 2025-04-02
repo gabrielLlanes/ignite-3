@@ -24,10 +24,7 @@ import org.apache.ignite.internal.schema.BinaryTuple;
 import org.apache.ignite.internal.schema.InternalTupleEx;
 
 /**
- * A projected tuple that aware of the format of delegate.
- *
- * <p>That is, the format of delegate is known to be Binary Tuple, thus it's possible to avoid unnecessary
- * (de-)serialization during tuple normalization.
+ * A projected tuple wrapper that is best effort to avoiding unnecessary (de-)serialization during tuple normalization.
  *
  * <p>It's up to the caller to get sure that provided tuple respect the format.
  *
@@ -35,7 +32,7 @@ import org.apache.ignite.internal.schema.InternalTupleEx;
  *
  * @see AbstractProjectedTuple
  */
-public class FormatAwareProjectedTuple extends AbstractProjectedTuple {
+public class ProjectedTuple extends AbstractProjectedTuple {
     /**
      * Constructor.
      *
@@ -44,35 +41,38 @@ public class FormatAwareProjectedTuple extends AbstractProjectedTuple {
      *         an index of field in resulting projection, and an element of the array at that index is an index of column in original
      *         tuple.
      */
-    public FormatAwareProjectedTuple(InternalTuple delegate, int[] projection) {
+    public ProjectedTuple(InternalTuple delegate, int[] projection) {
         super((InternalTupleEx) delegate, projection);
     }
 
     @Override
     protected void normalize() {
-        int[] newProjection = new int[projection.length];
+        BinaryTupleBuilder builder;
+        if (delegate instanceof BinaryTuple) {
+            // Estimate total data size.
+            var stats = new Sink() {
+                int estimatedValueSize = 0;
 
-        assert delegate instanceof BinaryTuple : "Expected BinaryTuple, but got " + delegate.getClass();
+                @Override
+                public void nextElement(int index, int begin, int end) {
+                    estimatedValueSize += end - begin;
+                }
+            };
 
-        // Estimate total data size.
-        var stats = new Sink() {
-            int estimatedValueSize = 0;
-
-            @Override
-            public void nextElement(int index, int begin, int end) {
-                estimatedValueSize += end - begin;
+            for (int columnIndex : projection) {
+                ((BinaryTuple) delegate).fetch(columnIndex, stats);
             }
-        };
 
-        for (int columnIndex : projection) {
-            ((BinaryTuple) delegate).fetch(columnIndex, stats);
+            builder = new BinaryTupleBuilder(projection.length, stats.estimatedValueSize, true);
+        } else {
+            builder = new BinaryTupleBuilder(projection.length, 32, false);
         }
 
-        // Now compose the tuple.
-        BinaryTupleBuilder builder = new BinaryTupleBuilder(projection.length, stats.estimatedValueSize);
-
+        // Extract projected columns into a builder.
+        int[] newProjection = new int[projection.length];
         for (int i = 0; i < projection.length; i++) {
             copyValue(builder, i);
+
             newProjection[i] = projection[i];
         }
 

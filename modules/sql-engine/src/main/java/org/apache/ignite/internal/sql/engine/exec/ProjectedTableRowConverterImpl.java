@@ -28,9 +28,8 @@ import org.apache.ignite.internal.schema.InternalTupleEx;
 import org.apache.ignite.internal.schema.SchemaDescriptor;
 import org.apache.ignite.internal.schema.SchemaRegistry;
 import org.apache.ignite.internal.sql.engine.exec.RowHandler.RowFactory;
-import org.apache.ignite.internal.sql.engine.util.ExtendedFieldDeserializingProjectedTuple;
-import org.apache.ignite.internal.sql.engine.util.FieldDeserializingProjectedTuple;
-import org.apache.ignite.internal.sql.engine.util.FormatAwareProjectedTuple;
+import org.apache.ignite.internal.sql.engine.util.ExtendedProjectedTuple;
+import org.apache.ignite.internal.sql.engine.util.ProjectedTuple;
 
 /**
  * Converts rows to execution engine representation.
@@ -84,11 +83,9 @@ public class ProjectedTableRowConverterImpl extends TableRowConverterImpl {
                 : schemaRegistry.resolve(tableRow, schemaDescriptor);
 
         if (!virtualColumns.isEmpty()) {
-            tuple = new ExtendedFieldDeserializingProjectedTuple(fullTupleSchema, tableTuple, requiredColumnsMapping, virtualColumns);
-        } else if (rowSchemaMatches) {
-            tuple = new FormatAwareProjectedTuple(tableTuple, requiredColumnsMapping);
+            tuple = new ExtendedProjectedTuple(tableTuple, requiredColumnsMapping, virtualColumns);
         } else {
-            tuple = new FieldDeserializingProjectedTuple(fullTupleSchema, tableTuple, requiredColumnsMapping);
+            tuple = new ProjectedTuple(tableTuple, requiredColumnsMapping);
         }
 
         return factory.create(tuple);

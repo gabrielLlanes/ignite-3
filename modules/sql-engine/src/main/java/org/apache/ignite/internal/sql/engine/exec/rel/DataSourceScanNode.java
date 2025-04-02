@@ -26,7 +26,7 @@ import org.apache.ignite.internal.schema.BinaryTupleSchema;
 import org.apache.ignite.internal.sql.engine.exec.ExecutionContext;
 import org.apache.ignite.internal.sql.engine.exec.RowHandler;
 import org.apache.ignite.internal.sql.engine.exec.ScannableDataSource;
-import org.apache.ignite.internal.sql.engine.util.FieldDeserializingProjectedTuple;
+import org.apache.ignite.internal.sql.engine.util.ProjectedTuple;
 import org.apache.ignite.internal.util.subscription.TransformingPublisher;
 import org.jetbrains.annotations.Nullable;
 
@@ -68,7 +68,7 @@ public class DataSourceScanNode<RowT> extends StorageScanNode<RowT> {
         } else {
             int[] mapping = requiredColumns.stream().toArray();
 
-            converter = tuple -> rowFactory.create(new FieldDeserializingProjectedTuple(schema, tuple, mapping));
+            converter = tuple -> rowFactory.create(new ProjectedTuple(tuple, mapping));
         }
     }
 

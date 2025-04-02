@@ -94,10 +94,10 @@ class ProjectedTupleTest {
     @ParameterizedTest
     @ValueSource(ints = {1, 2, 3})
     void projectionReturnsProperElementCount(int projectionSize) {
-        InternalTuple projection1 = new FieldDeserializingProjectedTuple(
-                ALL_TYPES_SCHEMA, TUPLE, new int[projectionSize]
+        InternalTuple projection1 = new ExtendedProjectedTuple(
+                TUPLE, new int[projectionSize], Int2ObjectMaps.emptyMap()
         );
-        InternalTuple projection2 = new FormatAwareProjectedTuple(
+        InternalTuple projection2 = new ProjectedTuple(
                 TUPLE, new int[projectionSize]
         );
 
@@ -115,8 +115,8 @@ class ProjectedTupleTest {
         int[] projection = {f1, f2, f3};
 
         InternalTuple projectedTuple = useOptimizeProjection
-                ? new FormatAwareProjectedTuple(TUPLE, projection)
-                : new FieldDeserializingProjectedTuple(ALL_TYPES_SCHEMA, TUPLE, projection);
+                ? new ProjectedTuple(TUPLE, projection)
+                : new ExtendedProjectedTuple(TUPLE, projection, Int2ObjectMaps.emptyMap());
 
         Element e1 = ALL_TYPES_SCHEMA.element(f1);
         Element e2 = ALL_TYPES_SCHEMA.element(f2);
@@ -153,7 +153,7 @@ class ProjectedTupleTest {
 
         int[] projection = {f1, virtualColumn.columnIndex(), f2, f3};
 
-        InternalTuple projectedTuple = new ExtendedFieldDeserializingProjectedTuple(ALL_TYPES_SCHEMA, TUPLE, projection,
+        InternalTuple projectedTuple = new ExtendedProjectedTuple(TUPLE, projection,
                 Int2ObjectMaps.singleton(ALL_TYPES_SCHEMA.elementCount(), virtualColumn));
 
         Element e1 = ALL_TYPES_SCHEMA.element(f1);
