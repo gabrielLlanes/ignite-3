@@ -22,7 +22,6 @@ import java.util.BitSet;
 import org.apache.ignite.internal.lang.InternalTuple;
 import org.apache.ignite.internal.schema.BinaryRow;
 import org.apache.ignite.internal.schema.BinaryTuple;
-import org.apache.ignite.internal.schema.BinaryTupleSchema;
 import org.apache.ignite.internal.schema.Column;
 import org.apache.ignite.internal.schema.InternalTupleEx;
 import org.apache.ignite.internal.schema.SchemaDescriptor;
@@ -40,21 +39,17 @@ public class ProjectedTableRowConverterImpl extends TableRowConverterImpl {
      */
     private final int[] requiredColumnsMapping;
 
-    private final BinaryTupleSchema fullTupleSchema;
-
     private final Int2ObjectMap<VirtualColumn> virtualColumns;
 
     /** Constructor. */
     ProjectedTableRowConverterImpl(
             SchemaRegistry schemaRegistry,
-            BinaryTupleSchema fullTupleSchema,
             SchemaDescriptor schemaDescriptor,
             BitSet requiredColumns,
             Int2ObjectMap<VirtualColumn> extraColumns
     ) {
         super(schemaRegistry, schemaDescriptor);
 
-        this.fullTupleSchema = fullTupleSchema;
         this.virtualColumns = extraColumns;
 
         int size = requiredColumns.cardinality();
